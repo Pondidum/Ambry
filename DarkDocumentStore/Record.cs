@@ -6,7 +6,7 @@ using DarkDocumentStore.Extensions;
 
 namespace DarkDocumentStore
 {
-	class Record
+	public class Record
 	{
 		private readonly IRecord _content;
 

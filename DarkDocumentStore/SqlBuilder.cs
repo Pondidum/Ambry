@@ -1,4 +1,6 @@
-﻿using DarkDocumentStore.Extensions;
+﻿using System.Text;
+using System.Data.Common;
+using DarkDocumentStore.Extensions;
 
 namespace DarkDocumentStore
 {
@@ -16,22 +18,27 @@ namespace DarkDocumentStore
 			_record = record.IfNotNull("record");
 		}
 
-		public string BuildInsert()
-		{
-			var indexes = _indexStore.GetIndexesFor(_record);
+		//public string BuildInsert()
+		//{
+		//    var indexes = _indexStore.GetIndexesFor(_record);
 
+		//    var factory = DbProviderFactories.GetFactory("");
+		//    var command = factory.CreateCommand();
 
-		}
+		//    command.CommandText = "";
 
-		public string BuildUpdate()
-		{
+		//    return "";
+		//}
 
-		}
+		//public string BuildUpdate()
+		//{
 
-		public string BuildDelete()
-		{
+		//}
+
+		//public string BuildDelete()
+		//{
 			
-		}
+		//}
 
 	}
 
