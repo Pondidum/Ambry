@@ -2,6 +2,6 @@ namespace DarkDocumentStore
 {
 	public interface IRecord
 	{
-		int ID { get; set; }
+		int? ID { get; set; }
 	}
 }

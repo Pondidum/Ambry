@@ -19,6 +19,8 @@ namespace DarkDocumentStore
 		}
 
 		public DateTime? Updated { get; private set; }
+		public int? ID { get { return _content.ID; } internal set { _content.ID = value; } }
+
 		internal String Name { get; private set; }
 
 	}

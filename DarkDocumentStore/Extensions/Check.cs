@@ -13,7 +13,7 @@ namespace DarkDocumentStore.Extensions
 			Argument(self, "self");
 		}
 
-		public static void Argument(Object self, string name)
+		public static void Argument(Object self, String name)
 		{
 			if (self == null)
 			{
@@ -21,8 +21,15 @@ namespace DarkDocumentStore.Extensions
 			}
 		}
 
+		public static void Argument(String self, String name)
+		{
+			if (string.IsNullOrEmpty(self))
+			{
+				throw new ArgumentException(name);
+			}
+		}
 
-		public static T IfNotNull<T>(this T self, string name) where T : class 
+		public static T IfNotNull<T>(this T self, String name) where T : class 
 		{
 			Check.Argument(self, name);
 			return self;

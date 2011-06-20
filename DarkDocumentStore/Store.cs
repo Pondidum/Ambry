@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -19,7 +20,7 @@ namespace DarkDocumentStore
 			_factory = factory.IfNotNull("factory");
 			_connectionString = connectionString;
 		}
-
+		
 		public void CreateTable<TRecord>() where TRecord : IRecord
 		{
 			var type = typeof(TRecord);
@@ -57,38 +58,38 @@ namespace DarkDocumentStore
 				CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
 			}
 		}
+		
+		public void DeleteTable<TRecord>() where TRecord : IRecord
+		{
+			var type = typeof(TRecord);
+			var indexes = GetIndexesFor<TRecord>();
+
+			if (!indexes.Any()) return;
+
+			using (var connection = OpenConnection())
+			{
+				foreach (var index in indexes)
+				{
+					DeleteIndex(connection, index);
+				}
+
+				DeleteTable(connection, type.Name);
+			}
+		}
 
 		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : IRecord
 		{
 			var type = typeof(TRecord);
 			var propertyName = PropertyName(property);
-
-			DeleteIndex(GetIndexTableName(type.Name, propertyName ));
-		}
-
-		public void DeleteIndex(String indexName)
-		{
-			var sql = String.Format("Drop Table {0}", indexName);
-
+			var indexName = GetIndexTableName(type.Name, propertyName);
+			
 			using (var connection = OpenConnection())
 			{
-				CreateCommand(connection, sql).ExecuteNonQuery();
+				DeleteIndex(connection, indexName);
 			}
 		}
 
-		public void DeleteTable<TRecord>() where TRecord : IRecord
-		{
-			var indexes = GetIndexes<TRecord>();
-
-			if (!indexes.Any()) return;
-
-			foreach (var index in indexes)
-			{
-				DeleteIndex(index);
-			}
-		}
-
-		public IEnumerable<String> GetIndexes<TRecord>() where TRecord : IRecord
+		public IEnumerable<String> GetIndexesFor<TRecord>() where TRecord : Record
 		{
 			var type = typeof(TRecord);
 			var name = String.Format("Index_{0}_", type.Name);
@@ -96,8 +97,72 @@ namespace DarkDocumentStore
 			return GetAllTables().Where(t => t.StartsWith(name));
 		}
 
+		public void Insert<TRecord>(TRecord record) where TRecord : Record 
+		{
+			Check.Argument(record, "record");
 
-		private List<String> GetAllTables()
+			using (var connection = OpenConnection())
+			{
+				var date = _factory.CreateParameter("date", DateTime.Now);
+				var id = InsertTable(connection, record, date);
+
+				var indexes = GetIndexesFor<TRecord>();
+
+				if (!indexes.Any()) return;
+
+				foreach (var index in indexes)
+				{
+					var propertyName = GetIndexPropertyName(index);
+
+				}
+			}
+		}
+
+		private int? InsertTable(DbConnection connection, Record record, IDataParameter date)
+		{
+			var sb = new StringBuilder();
+			
+			sb.AppendLine("Insert Into {0} (Updated, Content) ", record.Name);
+			sb.AppendLine("Values (@date , @content)");
+			
+			sb.AppendLine("Select LAST_INSERT_ID()");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(date);
+				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
+
+				record.ID = command.ExecuteScalar().ToInt();
+				
+				return record.ID;
+			}
+
+		}
+
+		private void InsertIndex(DbConnection connection, Record record, IDataParameter date)
+		{
+			
+		}
+
+		private void DeleteTable(DbConnection connection, String tableName)
+		{
+			Check.Argument(tableName, "tableName");
+
+			var sql = String.Format("Drop Table {0}", tableName);
+
+			CreateCommand(connection, sql).ExecuteNonQuery();
+		}
+
+		private void DeleteIndex(DbConnection connection, String indexName)
+		{
+			Check.Argument(indexName, "indexName");
+
+			var sql = String.Format("Drop Table {0}", indexName);
+
+			CreateCommand(connection, sql).ExecuteNonQuery();
+		}
+		
+		private IEnumerable<String> GetAllTables()
 		{
 			var tables = new List<String>();
 
@@ -117,10 +182,7 @@ namespace DarkDocumentStore
 			return tables;
 		}
 
-		private String GetIndexTableName(String table, String property)
-		{
-			return String.Format("Index_{0}_{1}", table, property);
-		}
+
 
 		private DbConnection OpenConnection()
 		{
@@ -143,7 +205,19 @@ namespace DarkDocumentStore
 			return command;
 		}
 
-		private string PropertyName<T>(Expression<Func<T, Object>> property)
+
+
+		private static String GetIndexTableName(String table, String property)
+		{
+			return String.Format("Index_{0}_{1}", table, property);
+		}
+
+		private static String GetIndexPropertyName(string indexName)
+		{
+			return indexName.Substring(indexName.LastIndexOf("_"));
+		}
+
+		private static string PropertyName<T>(Expression<Func<T, Object>> property)
 		{
 			var lambda = (LambdaExpression)property;
 
