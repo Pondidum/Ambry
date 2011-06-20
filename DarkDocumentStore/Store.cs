@@ -62,26 +62,30 @@ namespace DarkDocumentStore
 		{
 			var type = typeof(TRecord);
 			var propertyName = PropertyName(property);
-			var sb = new StringBuilder();
 
-			sb.AppendLine("Drop Table {0}", GetIndexTableName(type.Name, propertyName));
+			DeleteIndex(GetIndexTableName(type.Name, propertyName ));
+		}
+
+		public void DeleteIndex(String indexName)
+		{
+			var sql = String.Format("Drop Table {0}", indexName);
 
 			using (var connection = OpenConnection())
 			{
-				CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
+				CreateCommand(connection, sql).ExecuteNonQuery();
 			}
-
 		}
 
 		public void DeleteTable<TRecord>() where TRecord : IRecord
 		{
 			var indexes = GetIndexes<TRecord>();
 
-			if (indexes.Any() )
-			{
-				
-			}
+			if (!indexes.Any()) return;
 
+			foreach (var index in indexes)
+			{
+				DeleteIndex(index);
+			}
 		}
 
 		public IEnumerable<String> GetIndexes<TRecord>() where TRecord : IRecord
