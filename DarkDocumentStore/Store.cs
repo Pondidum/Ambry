@@ -11,7 +11,8 @@ using DarkDocumentStore.Extensions;
 namespace DarkDocumentStore
 {
 	public class Store
-	{
+	{		
+		
 		private readonly DbProviderFactory _factory;
 		private readonly string _connectionString;
 
@@ -19,73 +20,6 @@ namespace DarkDocumentStore
 		{
 			_factory = factory.IfNotNull("factory");
 			_connectionString = connectionString;
-		}
-
-		public void CreateTable<TRecord>() where TRecord : Record
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Create Table {0} (", typeof(TRecord).Name);
-			sb.AppendLine("  ID       int            not null auto_increment primary key, ");
-			sb.AppendLine("  Updated  DateTime       not null, ");
-			sb.AppendLine("  Content  Varchar(65535) not null ");
-			sb.AppendLine(") Engine=InnoDB");
-
-			using (var connection = OpenConnection())
-			{
-				CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
-			}
-
-		}
-
-		public void CreateIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
-		{
-			var type = typeof(TRecord);
-			var propertyName = PropertyName(property);
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Create Table {0} (", GetIndexTableName(type.Name, propertyName));
-			sb.AppendLine("  ID            int      not null auto_increment primary key, ");
-			sb.AppendLine("  EntryID       int      not null, ");
-			sb.AppendLine("  EntryUpdated  DateTime not null, ");
-			sb.AppendLine("  Value Varchar(65535)   not null, ");		//make to use property data types
-			sb.AppendLine("  Foreign Key (EntryID)  References {0} (ID) on delete cascade", type.Name);
-			sb.AppendLine(") Engine=InnoDB");
-
-			using (var connection = OpenConnection())
-			{
-				CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
-			}
-		}
-
-		public void DeleteTable<TRecord>() where TRecord : Record
-		{
-			var type = typeof(TRecord);
-			var indexes = GetIndexesFor<TRecord>();
-
-			if (!indexes.Any()) return;
-
-			using (var connection = OpenConnection())
-			{
-				foreach (var index in indexes)
-				{
-					DeleteIndex(connection, index);
-				}
-
-				DeleteTable(connection, type.Name);
-			}
-		}
-
-		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
-		{
-			var type = typeof(TRecord);
-			var propertyName = PropertyName(property);
-			var indexName = GetIndexTableName(type.Name, propertyName);
-
-			using (var connection = OpenConnection())
-			{
-				DeleteIndex(connection, indexName);
-			}
 		}
 
 		public IEnumerable<String> GetIndexesFor<TRecord>() where TRecord : Record
@@ -236,27 +170,6 @@ namespace DarkDocumentStore
 		}
 
 
-
-		private void DeleteTable(DbConnection connection, String tableName)
-		{
-			Check.Argument(tableName, "tableName");
-
-			var sql = String.Format("Drop Table {0}", tableName);
-
-			CreateCommand(connection, sql).ExecuteNonQuery();
-		}
-
-		private void DeleteIndex(DbConnection connection, String indexName)
-		{
-			Check.Argument(indexName, "indexName");
-
-			var sql = String.Format("Drop Table {0}", indexName);
-
-			CreateCommand(connection, sql).ExecuteNonQuery();
-		}
-
-
-
 		private IEnumerable<String> GetAllTables()
 		{
 			var tables = new List<String>();
@@ -279,7 +192,7 @@ namespace DarkDocumentStore
 
 
 
-		private DbConnection OpenConnection()
+		internal  DbConnection OpenConnection()
 		{
 			var connection = _factory.CreateConnection();
 
@@ -289,7 +202,7 @@ namespace DarkDocumentStore
 			return connection;
 		}
 
-		private DbCommand CreateCommand(DbConnection connection, String sql)
+		internal  DbCommand CreateCommand(DbConnection connection, String sql)
 		{
 			var command = _factory.CreateCommand();
 
@@ -302,34 +215,11 @@ namespace DarkDocumentStore
 
 
 
-		private static String GetIndexTableName(String table, String property)
-		{
-			return String.Format("Index_{0}_{1}", table, property);
-		}
-
 		private static String GetIndexPropertyName(string indexName)
 		{
 			return indexName.Substring(indexName.LastIndexOf("_") + 1);
 		}
 
-		private static string PropertyName<T>(Expression<Func<T, Object>> property)
-		{
-			var lambda = (LambdaExpression)property;
-
-			MemberExpression memberExpression;
-
-			if (lambda.Body is UnaryExpression)
-			{
-				var unaryExpression = (UnaryExpression)lambda.Body;
-				memberExpression = (MemberExpression)unaryExpression.Operand;
-			}
-			else
-			{
-				memberExpression = (MemberExpression)lambda.Body;
-			}
-
-			return memberExpression.Member.Name;
-		}
 
 	}
 }

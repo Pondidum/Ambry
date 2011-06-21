@@ -12,23 +12,24 @@ namespace DarkDocumentStore.Console
 			public string Name { get; set; }
 		}
 
+		private const string ConnectionString = "Server=192.168.0.145;Database=DarkDataStore;Uid=datastore;Pwd=testing;";
+
 		static void Main(string[] args)
 		{
 
 			try
 			{
-
 				var factory = DbProviderFactories.GetFactory("MySql.Data.MySqlClient");
-				var connectionString = "Server=192.168.0.145;Database=DarkDataStore;Uid=datastore;Pwd=testing;";
-
-				var store = new Store(factory, connectionString);
 				
-				//store.CreateTable<TestRecord>();
-				//store.CreateIndex<TestRecord>(r => r.Name);
+				var store = new Store(factory, ConnectionString);
+				//var builder = new StoreBuilder(store);
+
+				//builder.CreateTable<TestRecord>();
+				//builder.CreateIndex<TestRecord>(r => r.Name);
 
 				var record = new TestRecord();
+				
 				record.Name = "testing!";
-
 				store.Insert(record);
 
 				record.Name = "omg!";
