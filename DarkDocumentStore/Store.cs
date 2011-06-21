@@ -48,7 +48,7 @@ namespace DarkDocumentStore
 					return;  //uh oh.
 				}
 
-				var indexes = GetIndexesFor<TRecord>();
+				var indexes = GetIndexesFor<TRecord>(connection);
 
 				if (!indexes.Any()) return;
 
@@ -74,7 +74,7 @@ namespace DarkDocumentStore
 
 				UpdateTable(connection, record, date);
 
-				var indexes = GetIndexesFor<TRecord>();
+				var indexes = GetIndexesFor<TRecord>(connection);
 
 				if (!indexes.Any()) return;
 
@@ -96,7 +96,7 @@ namespace DarkDocumentStore
 
 			using (var connection = OpenConnection())
 			{
-				var indexes = GetIndexesFor<TRecord>();
+				var indexes = GetIndexesFor<TRecord>(connection);
 
 				foreach (var index in indexes)
 				{
@@ -226,7 +226,7 @@ namespace DarkDocumentStore
 
 
 
-		private IEnumerable<String> GetIndexesFor<TRecord>(DbConnection connection) where TRecord : Record
+		internal IEnumerable<String> GetIndexesFor<TRecord>(DbConnection connection) where TRecord : Record
 		{
 			var type = typeof(TRecord);
 			var name = String.Format("Index_{0}_", type.Name);

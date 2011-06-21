@@ -57,12 +57,12 @@ namespace DarkDocumentStore
 		public void DeleteTable<TRecord>() where TRecord : Record
 		{
 			var type = typeof(TRecord);
-			var indexes = _store.GetIndexesFor<TRecord>();
-
-			if (!indexes.Any()) return;
 
 			using (var connection = _store.OpenConnection())
 			{
+
+				var indexes = _store.GetIndexesFor<TRecord>(connection);
+
 				foreach (var index in indexes)
 				{
 					DeleteIndex(connection, index);
