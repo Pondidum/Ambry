@@ -11,8 +11,8 @@ using DarkDocumentStore.Extensions;
 namespace DarkDocumentStore
 {
 	public class Store
-	{		
-		
+	{
+
 		private readonly DbProviderFactory _factory;
 		private readonly string _connectionString;
 
@@ -22,15 +22,15 @@ namespace DarkDocumentStore
 			_connectionString = connectionString;
 		}
 
+
+
 		public IEnumerable<String> GetIndexesFor<TRecord>() where TRecord : Record
 		{
-			var type = typeof(TRecord);
-			var name = String.Format("Index_{0}_", type.Name);
-
-			return GetAllTables().Where(t => t.StartsWith(name));
+			using (var connection = OpenConnection())
+			{
+				return GetIndexesFor<TRecord>(connection);
+			}
 		}
-
-
 
 		public void Insert<TRecord>(TRecord record) where TRecord : Record
 		{
@@ -61,6 +61,54 @@ namespace DarkDocumentStore
 				}
 			}
 		}
+
+		public void Update<TRecord>(TRecord record) where TRecord : Record
+		{
+			Check.Argument(record, "record");
+
+			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be updated.  Did you mean to call Insert()?");
+
+			using (var connection = OpenConnection())
+			{
+				var date = DateTime.Now;
+
+				UpdateTable(connection, record, date);
+
+				var indexes = GetIndexesFor<TRecord>();
+
+				if (!indexes.Any()) return;
+
+				foreach (var index in indexes)
+				{
+					var propertyName = GetIndexPropertyName(index);
+					var value = record.GetPropertyValue(propertyName);
+
+					UpdateIndex(connection, record, index, date, value);
+				}
+			}
+		}
+
+		public void Delete<TRecord>(TRecord record) where TRecord : Record
+		{
+			Check.Argument(record, "record");
+
+			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be deleted.");
+
+			using (var connection = OpenConnection())
+			{
+				var indexes = GetIndexesFor<TRecord>();
+
+				foreach (var index in indexes)
+				{
+					DeleteIndex(connection, index, record);
+				}
+
+				DeleteTable(connection, record);
+			}
+		}
+
+
+
 
 		private int? InsertTable(DbConnection connection, Record record, DateTime date)
 		{
@@ -103,32 +151,6 @@ namespace DarkDocumentStore
 
 
 
-		public void Update<TRecord>(TRecord record) where TRecord : Record
-		{
-			Check.Argument(record, "record");
-
-			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be updated.  Did you mean to call Insert()?");
-
-			using (var connection = OpenConnection())
-			{
-				var date = DateTime.Now;
-
-				UpdateTable(connection, record, date);
-
-				var indexes = GetIndexesFor<TRecord>();
-
-				if (!indexes.Any()) return;
-
-				foreach (var index in indexes)
-				{
-					var propertyName = GetIndexPropertyName(index);
-					var value = record.GetPropertyValue(propertyName);
-
-					UpdateIndex(connection, record, index, date, value);
-				}
-			}
-		}
-
 		private void UpdateTable(DbConnection connection, Record record, DateTime date)
 		{
 			var sb = new StringBuilder();
@@ -170,20 +192,59 @@ namespace DarkDocumentStore
 		}
 
 
-		private IEnumerable<String> GetAllTables()
+
+		private void DeleteTable(DbConnection connection, Record record)
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Delete From {0} ", record.GetType().Name);
+			sb.AppendLine("Where ID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
+
+				command.ExecuteScalar();
+				record.ID = null;
+			}
+		}
+
+		private void DeleteIndex(DbConnection connection, String indexName, Record record)
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Delete From {0} ", indexName);
+			sb.AppendLine("Where EntryID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
+
+				command.ExecuteScalar();
+			}
+		}
+
+
+
+		private IEnumerable<String> GetIndexesFor<TRecord>(DbConnection connection) where TRecord : Record
+		{
+			var type = typeof(TRecord);
+			var name = String.Format("Index_{0}_", type.Name);
+
+			return GetAllTables(connection).Where(t => t.StartsWith(name));
+		}
+
+		private IEnumerable<String> GetAllTables(DbConnection connection)
 		{
 			var tables = new List<String>();
 
-			using (var connection = OpenConnection())
-			{
-				var command = CreateCommand(connection, "Show Tables");
+			var command = CreateCommand(connection, "Show Tables");
 
-				using (var reader = command.ExecuteReader())
+			using (var reader = command.ExecuteReader())
+			{
+				while (reader.Read())
 				{
-					while (reader.Read())
-					{
-						tables.Add(reader.GetString(0));
-					}
+					tables.Add(reader.GetString(0));
 				}
 			}
 
@@ -192,7 +253,7 @@ namespace DarkDocumentStore
 
 
 
-		internal  DbConnection OpenConnection()
+		internal DbConnection OpenConnection()
 		{
 			var connection = _factory.CreateConnection();
 
@@ -202,7 +263,7 @@ namespace DarkDocumentStore
 			return connection;
 		}
 
-		internal  DbCommand CreateCommand(DbConnection connection, String sql)
+		internal DbCommand CreateCommand(DbConnection connection, String sql)
 		{
 			var command = _factory.CreateCommand();
 
@@ -213,13 +274,10 @@ namespace DarkDocumentStore
 			return command;
 		}
 
-
-
 		private static String GetIndexPropertyName(string indexName)
 		{
 			return indexName.Substring(indexName.LastIndexOf("_") + 1);
 		}
-
 
 	}
 }
