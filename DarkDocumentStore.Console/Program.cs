@@ -9,7 +9,6 @@ namespace DarkDocumentStore.Console
 
 		private class TestRecord : Record
 		{
-			//public int? ID { get; set; }
 			public string Name { get; set; }
 		}
 
@@ -27,11 +26,14 @@ namespace DarkDocumentStore.Console
 				//store.CreateTable<TestRecord>();
 				//store.CreateIndex<TestRecord>(r => r.Name);
 
-
 				var record = new TestRecord();
 				record.Name = "testing!";
 
 				store.Insert(record);
+
+				record.Name = "omg!";
+				store.Update(record);
+
 			}
 			catch (Exception ex)
 			{

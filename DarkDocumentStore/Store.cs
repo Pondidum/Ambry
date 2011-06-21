@@ -20,7 +20,7 @@ namespace DarkDocumentStore
 			_factory = factory.IfNotNull("factory");
 			_connectionString = connectionString;
 		}
-		
+
 		public void CreateTable<TRecord>() where TRecord : Record
 		{
 			var sb = new StringBuilder();
@@ -57,7 +57,7 @@ namespace DarkDocumentStore
 				CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
 			}
 		}
-		
+
 		public void DeleteTable<TRecord>() where TRecord : Record
 		{
 			var type = typeof(TRecord);
@@ -81,7 +81,7 @@ namespace DarkDocumentStore
 			var type = typeof(TRecord);
 			var propertyName = PropertyName(property);
 			var indexName = GetIndexTableName(type.Name, propertyName);
-			
+
 			using (var connection = OpenConnection())
 			{
 				DeleteIndex(connection, indexName);
@@ -98,16 +98,18 @@ namespace DarkDocumentStore
 
 
 
-		public void Insert<TRecord>(TRecord record) where TRecord : Record 
+		public void Insert<TRecord>(TRecord record) where TRecord : Record
 		{
 			Check.Argument(record, "record");
 
+			if (record.ID.HasValue) throw new InvalidOperationException("The record has an ID already, and cannot be inserted.  Did you mean to call Update()?");
+
 			using (var connection = OpenConnection())
 			{
-				var date = _factory.CreateParameter("date", DateTime.Now);
+				var date = DateTime.Now;
 				var id = InsertTable(connection, record, date);
 
-				if ( !id.HasValue )
+				if (!id.HasValue)
 				{
 					return;  //uh oh.
 				}
@@ -126,28 +128,29 @@ namespace DarkDocumentStore
 			}
 		}
 
-		private int? InsertTable(DbConnection connection, Record record, IDataParameter date)
+		private int? InsertTable(DbConnection connection, Record record, DateTime date)
 		{
 			var sb = new StringBuilder();
-			
+
 			sb.AppendLine("Insert Into {0} (Updated, Content) ", record.GetType().Name);
 			sb.AppendLine("Values (@date , @content);");
-			
+
 			sb.AppendLine("Select LAST_INSERT_ID()");
 
 			using (var command = CreateCommand(connection, sb.ToString()))
 			{
-				command.Parameters.Add(date);
+				command.Parameters.Add(_factory.CreateParameter("date", date));
 				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
 
 				record.ID = command.ExecuteScalar().ToInt();
-				
+				record.Updated = date;
+
 				return record.ID;
 			}
 
 		}
 
-		private void InsertIndex(DbConnection connection, Record record, String indexName, IDataParameter date, Object value)
+		private void InsertIndex(DbConnection connection, Record record, String indexName, DateTime date, Object value)
 		{
 			var sb = new StringBuilder();
 
@@ -156,9 +159,77 @@ namespace DarkDocumentStore
 
 			using (var command = CreateCommand(connection, sb.ToString()))
 			{
-				command.Parameters.Add(date);
 				command.Parameters.Add(_factory.CreateParameter("entryID", record.ID));
+				command.Parameters.Add(_factory.CreateParameter("date", date));
 				command.Parameters.Add(_factory.CreateParameter("value", value));
+
+				command.ExecuteScalar();
+			}
+		}
+
+
+
+		public void Update<TRecord>(TRecord record) where TRecord : Record
+		{
+			Check.Argument(record, "record");
+
+			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be updated.  Did you mean to call Insert()?");
+
+			using (var connection = OpenConnection())
+			{
+				var date = DateTime.Now;
+
+				UpdateTable(connection, record, date);
+
+				var indexes = GetIndexesFor<TRecord>();
+
+				if (!indexes.Any()) return;
+
+				foreach (var index in indexes)
+				{
+					var propertyName = GetIndexPropertyName(index);
+					var value = record.GetPropertyValue(propertyName);
+
+					UpdateIndex(connection, record, index, date, value);
+				}
+			}
+		}
+
+		private void UpdateTable(DbConnection connection, Record record, DateTime date)
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Update {0} Set ", record.GetType().Name);
+			sb.AppendLine("Updated = @date, ");
+			sb.AppendLine("Content = @content ");
+			sb.AppendLine("Where ID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("date", date));
+				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
+				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
+
+				command.ExecuteScalar();
+
+				record.Updated = date;
+			}
+		}
+
+		private void UpdateIndex(DbConnection connection, Record record, String indexName, DateTime date, Object value)
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Update {0} Set ", indexName);
+			sb.AppendLine("EntryUpdated = @date, ");
+			sb.AppendLine("Value = @value ");
+			sb.AppendLine("Where EntryID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("date", date));
+				command.Parameters.Add(_factory.CreateParameter("value", value));
+				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
 
 				command.ExecuteScalar();
 			}
@@ -183,7 +254,7 @@ namespace DarkDocumentStore
 
 			CreateCommand(connection, sql).ExecuteNonQuery();
 		}
-		
+
 
 
 		private IEnumerable<String> GetAllTables()
