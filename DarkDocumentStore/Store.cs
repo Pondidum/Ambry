@@ -21,12 +21,11 @@ namespace DarkDocumentStore
 			_connectionString = connectionString;
 		}
 		
-		public void CreateTable<TRecord>() where TRecord : IRecord
+		public void CreateTable<TRecord>() where TRecord : Record
 		{
-			var type = typeof(TRecord);
 			var sb = new StringBuilder();
 
-			sb.AppendLine("Create Table {0} (", type.Name);
+			sb.AppendLine("Create Table {0} (", typeof(TRecord).Name);
 			sb.AppendLine("  ID       int            not null auto_increment primary key, ");
 			sb.AppendLine("  Updated  DateTime       not null, ");
 			sb.AppendLine("  Content  Varchar(65535) not null ");
@@ -39,7 +38,7 @@ namespace DarkDocumentStore
 
 		}
 
-		public void CreateIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : IRecord
+		public void CreateIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
 			var propertyName = PropertyName(property);
@@ -59,7 +58,7 @@ namespace DarkDocumentStore
 			}
 		}
 		
-		public void DeleteTable<TRecord>() where TRecord : IRecord
+		public void DeleteTable<TRecord>() where TRecord : Record
 		{
 			var type = typeof(TRecord);
 			var indexes = GetIndexesFor<TRecord>();
@@ -77,7 +76,7 @@ namespace DarkDocumentStore
 			}
 		}
 
-		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : IRecord
+		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
 			var propertyName = PropertyName(property);
@@ -97,6 +96,8 @@ namespace DarkDocumentStore
 			return GetAllTables().Where(t => t.StartsWith(name));
 		}
 
+
+
 		public void Insert<TRecord>(TRecord record) where TRecord : Record 
 		{
 			Check.Argument(record, "record");
@@ -106,6 +107,11 @@ namespace DarkDocumentStore
 				var date = _factory.CreateParameter("date", DateTime.Now);
 				var id = InsertTable(connection, record, date);
 
+				if ( !id.HasValue )
+				{
+					return;  //uh oh.
+				}
+
 				var indexes = GetIndexesFor<TRecord>();
 
 				if (!indexes.Any()) return;
@@ -113,7 +119,9 @@ namespace DarkDocumentStore
 				foreach (var index in indexes)
 				{
 					var propertyName = GetIndexPropertyName(index);
+					var value = record.GetPropertyValue(propertyName);
 
+					InsertIndex(connection, record, index, date, value);
 				}
 			}
 		}
@@ -122,8 +130,8 @@ namespace DarkDocumentStore
 		{
 			var sb = new StringBuilder();
 			
-			sb.AppendLine("Insert Into {0} (Updated, Content) ", record.Name);
-			sb.AppendLine("Values (@date , @content)");
+			sb.AppendLine("Insert Into {0} (Updated, Content) ", record.GetType().Name);
+			sb.AppendLine("Values (@date , @content);");
 			
 			sb.AppendLine("Select LAST_INSERT_ID()");
 
@@ -139,10 +147,24 @@ namespace DarkDocumentStore
 
 		}
 
-		private void InsertIndex(DbConnection connection, Record record, IDataParameter date)
+		private void InsertIndex(DbConnection connection, Record record, String indexName, IDataParameter date, Object value)
 		{
-			
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Insert Into {0} (EntryID, EntryUpdated, Value) ", indexName);
+			sb.AppendLine("Values (@entryID, @date, @value)");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(date);
+				command.Parameters.Add(_factory.CreateParameter("entryID", record.ID));
+				command.Parameters.Add(_factory.CreateParameter("value", value));
+
+				command.ExecuteScalar();
+			}
 		}
+
+
 
 		private void DeleteTable(DbConnection connection, String tableName)
 		{
@@ -162,6 +184,8 @@ namespace DarkDocumentStore
 			CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 		
+
+
 		private IEnumerable<String> GetAllTables()
 		{
 			var tables = new List<String>();
@@ -214,7 +238,7 @@ namespace DarkDocumentStore
 
 		private static String GetIndexPropertyName(string indexName)
 		{
-			return indexName.Substring(indexName.LastIndexOf("_"));
+			return indexName.Substring(indexName.LastIndexOf("_") + 1);
 		}
 
 		private static string PropertyName<T>(Expression<Func<T, Object>> property)
