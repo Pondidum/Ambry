@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using DarkDocumentStore.Extensions;
 
@@ -22,13 +20,13 @@ namespace DarkDocumentStore
 			_connectionString = connectionString;
 		}
 
-
-
-		public IEnumerable<String> GetIndexesFor<TRecord>() where TRecord : Record
+		public TRecord GetByID<TRecord>(int id) where TRecord : Record
 		{
+			Check.ID(id, "ID");
+
 			using (var connection = OpenConnection())
 			{
-				return GetIndexesFor<TRecord>(connection);
+				return GetByID<TRecord>(connection, id);
 			}
 		}
 
@@ -109,6 +107,29 @@ namespace DarkDocumentStore
 
 
 
+		private TRecord GetByID<TRecord>(DbConnection connection, int id) where TRecord : Record
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Select ID, Updated, Content");
+			sb.AppendLine("From {0} ", typeof (TRecord).Name);
+			sb.AppendLine("Where ID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("id", id));
+
+				using (var reader = command.ExecuteReader())
+				{
+					reader.Read();
+
+					var result = reader.GetString(2).ToObject<TRecord>();
+
+					return result;
+				}
+			}
+		}
+
 
 		private int? InsertTable(DbConnection connection, Record record, DateTime date)
 		{
@@ -162,13 +183,13 @@ namespace DarkDocumentStore
 
 			using (var command = CreateCommand(connection, sb.ToString()))
 			{
+				record.Updated = date;
+
 				command.Parameters.Add(_factory.CreateParameter("date", date));
 				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
 				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
 
 				command.ExecuteScalar();
-
-				record.Updated = date;
 			}
 		}
 

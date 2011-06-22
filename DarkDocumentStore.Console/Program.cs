@@ -27,9 +27,6 @@ namespace DarkDocumentStore.Console
 				//builder.CreateTable<TestRecord>();
 				//builder.CreateIndex<TestRecord>(r => r.Name);
 
-				var record = new TestRecord {ID = 1};
-
-				store.Delete(record);
 				
 			}
 			catch (Exception ex)
