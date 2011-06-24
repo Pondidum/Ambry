@@ -8,11 +8,6 @@ namespace DarkDocumentStore.Extensions
 {
 	static class ObjectExtensions
 	{
-		internal static String ToJson(this Object self)
-		{
-			return "json";
-		}
-
 		internal static int ToInt(this Object self)
 		{
 			return Convert.ToInt32(self);
