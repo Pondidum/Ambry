@@ -20,16 +20,6 @@ namespace DarkDocumentStore
 			_connectionString = connectionString;
 		}
 
-		public TRecord GetByID<TRecord>(int id) where TRecord : Record
-		{
-			Check.ID(id, "ID");
-
-			using (var connection = OpenConnection())
-			{
-				return GetByID<TRecord>(connection, id);
-			}
-		}
-
 		public void Insert<TRecord>(TRecord record) where TRecord : Record
 		{
 			Check.Argument(record, "record");
@@ -105,30 +95,13 @@ namespace DarkDocumentStore
 			}
 		}
 
-
-
-		private TRecord GetByID<TRecord>(DbConnection connection, int id) where TRecord : Record
+		public TRecord GetByID<TRecord>(int id) where TRecord : Record
 		{
-			var sb = new StringBuilder();
+			Check.ID(id, "ID");
 
-			sb.AppendLine("Select ID, Updated, Content");
-			sb.AppendLine("From {0} ", typeof (TRecord).Name);
-			sb.AppendLine("Where ID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
+			using (var connection = OpenConnection())
 			{
-				command.Parameters.Add(_factory.CreateParameter("id", id));
-
-				using (var reader = command.ExecuteReader())
-				{
-					reader.Read();
-
-					var result = JsonSerializer.Deserialize<TRecord>(reader.GetString(2));
-					result.ID = reader.GetInt32(0);
-					result.Updated = reader.GetDateTime(1);
-
-					return result;
-				}
+				return GetByID<TRecord>(connection, id);
 			}
 		}
 
@@ -155,25 +128,6 @@ namespace DarkDocumentStore
 
 		}
 
-		private void CreateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Insert Into {0} (EntryID, EntryUpdated, Value) ", indexName);
-			sb.AppendLine("Values (@entryID, @date, @value)");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("entryID", record.ID));
-				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("value", value));
-
-				command.ExecuteScalar();
-			}
-		}
-
-
-
 		private void UpdateRecord(DbConnection connection, Record record, DateTime date)
 		{
 			var sb = new StringBuilder();
@@ -190,6 +144,66 @@ namespace DarkDocumentStore
 				command.Parameters.Add(_factory.CreateParameter("date", date));
 				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
 				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
+
+				command.ExecuteScalar();
+			}
+		}
+		
+		private void DeleteRecord(DbConnection connection, Record record)
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Delete From {0} ", record.GetType().Name);
+			sb.AppendLine("Where ID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
+
+				command.ExecuteScalar();
+				record.ID = null;
+			}
+		}
+
+		private TRecord GetByID<TRecord>(DbConnection connection, int id) where TRecord : Record
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Select ID, Updated, Content");
+			sb.AppendLine("From {0} ", typeof(TRecord).Name);
+			sb.AppendLine("Where ID = @id");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("id", id));
+
+				using (var reader = command.ExecuteReader())
+				{
+					reader.Read();
+
+					var result = JsonSerializer.Deserialize<TRecord>(reader.GetString(2));
+					result.ID = reader.GetInt32(0);
+					result.Updated = reader.GetDateTime(1);
+
+					return result;
+				}
+			}
+		}
+		
+		
+		
+		private void CreateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
+		{
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Insert Into {0} (EntryID, EntryUpdated, Value) ", indexName);
+			sb.AppendLine("Values (@entryID, @date, @value)");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("entryID", record.ID));
+				command.Parameters.Add(_factory.CreateParameter("date", date));
+				command.Parameters.Add(_factory.CreateParameter("value", value));
 
 				command.ExecuteScalar();
 			}
@@ -211,24 +225,6 @@ namespace DarkDocumentStore
 				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
 
 				command.ExecuteScalar();
-			}
-		}
-
-
-
-		private void DeleteRecord(DbConnection connection, Record record)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Delete From {0} ", record.GetType().Name);
-			sb.AppendLine("Where ID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
-
-				command.ExecuteScalar();
-				record.ID = null;
 			}
 		}
 
