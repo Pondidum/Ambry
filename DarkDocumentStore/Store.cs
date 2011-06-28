@@ -39,7 +39,7 @@ namespace DarkDocumentStore
 			using (var connection = OpenConnection())
 			{
 				var date = DateTime.Now;
-				var id = InsertTable(connection, record, date);
+				var id = CreateRecord(connection, record, date);
 
 				if (!id.HasValue)
 				{
@@ -55,7 +55,7 @@ namespace DarkDocumentStore
 					var propertyName = GetIndexPropertyName(index);
 					var value = record.GetPropertyValue(propertyName);
 
-					InsertIndex(connection, record, index, date, value);
+					CreateIndexEntry(connection, record, index, date, value);
 				}
 			}
 		}
@@ -70,7 +70,7 @@ namespace DarkDocumentStore
 			{
 				var date = DateTime.Now;
 
-				UpdateTable(connection, record, date);
+				UpdateRecord(connection, record, date);
 
 				var indexes = GetIndexesFor<TRecord>(connection);
 
@@ -81,7 +81,7 @@ namespace DarkDocumentStore
 					var propertyName = GetIndexPropertyName(index);
 					var value = record.GetPropertyValue(propertyName);
 
-					UpdateIndex(connection, record, index, date, value);
+					UpdateIndexEntry(connection, record, index, date, value);
 				}
 			}
 		}
@@ -98,10 +98,10 @@ namespace DarkDocumentStore
 
 				foreach (var index in indexes)
 				{
-					DeleteIndex(connection, index, record);
+					DeleteIndexEntry(connection, index, record);
 				}
 
-				DeleteTable(connection, record);
+				DeleteRecord(connection, record);
 			}
 		}
 
@@ -123,7 +123,9 @@ namespace DarkDocumentStore
 				{
 					reader.Read();
 
-					var result = reader.GetString(2).ToObject<TRecord>();
+					var result = JsonSerializer.Deserialize<TRecord>(reader.GetString(2));
+					result.ID = reader.GetInt32(0);
+					result.Updated = reader.GetDateTime(1);
 
 					return result;
 				}
@@ -131,7 +133,7 @@ namespace DarkDocumentStore
 		}
 
 
-		private int? InsertTable(DbConnection connection, Record record, DateTime date)
+		private int? CreateRecord(DbConnection connection, Record record, DateTime date)
 		{
 			var sb = new StringBuilder();
 
@@ -153,7 +155,7 @@ namespace DarkDocumentStore
 
 		}
 
-		private void InsertIndex(DbConnection connection, Record record, String indexName, DateTime date, Object value)
+		private void CreateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
 		{
 			var sb = new StringBuilder();
 
@@ -172,7 +174,7 @@ namespace DarkDocumentStore
 
 
 
-		private void UpdateTable(DbConnection connection, Record record, DateTime date)
+		private void UpdateRecord(DbConnection connection, Record record, DateTime date)
 		{
 			var sb = new StringBuilder();
 
@@ -193,7 +195,7 @@ namespace DarkDocumentStore
 			}
 		}
 
-		private void UpdateIndex(DbConnection connection, Record record, String indexName, DateTime date, Object value)
+		private void UpdateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
 		{
 			var sb = new StringBuilder();
 
@@ -214,7 +216,7 @@ namespace DarkDocumentStore
 
 
 
-		private void DeleteTable(DbConnection connection, Record record)
+		private void DeleteRecord(DbConnection connection, Record record)
 		{
 			var sb = new StringBuilder();
 
@@ -230,7 +232,7 @@ namespace DarkDocumentStore
 			}
 		}
 
-		private void DeleteIndex(DbConnection connection, String indexName, Record record)
+		private void DeleteIndexEntry(DbConnection connection, String indexName, Record record)
 		{
 			var sb = new StringBuilder();
 
