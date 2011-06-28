@@ -164,6 +164,19 @@ namespace DarkDocumentStore
 				record.ID = null;
 			}
 		}
+		
+		private TRecord ReadRecord<TRecord>(IDataReader reader) where TRecord : Record
+		{
+			var id = reader.GetInt32(0);
+			var updated = reader.GetDateTime(1);
+			var json = reader.GetString(2);
+
+			var result = JsonSerializer.Deserialize<TRecord>(json);
+			result.ID = id;
+			result.Updated = updated;
+
+			return result;
+		}
 
 		private TRecord GetByID<TRecord>(DbConnection connection, int id) where TRecord : Record
 		{
@@ -181,11 +194,7 @@ namespace DarkDocumentStore
 				{
 					reader.Read();
 
-					var result = JsonSerializer.Deserialize<TRecord>(reader.GetString(2));
-					result.ID = reader.GetInt32(0);
-					result.Updated = reader.GetDateTime(1);
-
-					return result;
+					return ReadRecord<TRecord>(reader);
 				}
 			}
 		}
