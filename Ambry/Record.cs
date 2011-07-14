@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Web.Script.Serialization;
 
-namespace DarkDocumentStore
+namespace Ambry
 {
 	public abstract class Record
 	{
@@ -11,9 +11,5 @@ namespace DarkDocumentStore
 		[ScriptIgnore]
 		public int? ID { get; internal set; }
 
-		internal String ToJson()
-		{
-			
-		}
 	}
 }

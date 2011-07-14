@@ -4,9 +4,9 @@ using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
-using DarkDocumentStore.Extensions;
+using Ambry.Extensions;
 
-namespace DarkDocumentStore
+namespace Ambry
 {
 	public class StoreBuilder
 	{

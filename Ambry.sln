@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkDocumentStore", "DarkDocumentStore\DarkDocumentStore.csproj", "{28C24095-DA02-4DC8-A1A0-AF0A1A059A15}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ambry", "Ambry\Ambry.csproj", "{28C24095-DA02-4DC8-A1A0-AF0A1A059A15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkDocumentStore.Console", "DarkDocumentStore.Console\DarkDocumentStore.Console.csproj", "{85947B98-DD21-4002-B1AF-8602BC20970D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ambry.Console", "Ambry.Console\Ambry.Console.csproj", "{85947B98-DD21-4002-B1AF-8602BC20970D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

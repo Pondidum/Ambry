@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DarkDocumentStore.Extensions;
+using Ambry.Extensions;
 
-namespace DarkDocumentStore
+namespace Ambry
 {
 	class IndexStore
 	{

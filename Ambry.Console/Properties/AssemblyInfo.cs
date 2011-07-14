@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DarkDocumentStore")]
+[assembly: AssemblyTitle("Ambry.Console")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("DarkDocumentStore")]
+[assembly: AssemblyProduct("Ambry.Console")]
 [assembly: AssemblyCopyright("Copyright ©  2011")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("0b1085e4-0e03-4fe3-b5ab-eae2df42e1af")]
+[assembly: Guid("4d247543-9904-49c9-95bc-b48297386e36")]
 
 // Version information for an assembly consists of the following four values:
 //

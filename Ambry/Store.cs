@@ -4,9 +4,9 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
-using DarkDocumentStore.Extensions;
+using Ambry.Extensions;
 
-namespace DarkDocumentStore
+namespace Ambry
 {
 	public class Store
 	{
@@ -118,7 +118,7 @@ namespace DarkDocumentStore
 			using (var command = CreateCommand(connection, sb.ToString()))
 			{
 				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
+				command.Parameters.Add(_factory.CreateParameter("content", JsonSerializer.Serialize(record)));
 
 				record.ID = command.ExecuteScalar().ToInt();
 				record.Updated = date;
@@ -142,7 +142,7 @@ namespace DarkDocumentStore
 				record.Updated = date;
 
 				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("content", record.ToJson()));
+				command.Parameters.Add(_factory.CreateParameter("content", JsonSerializer.Serialize(record)));
 				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
 
 				command.ExecuteScalar();

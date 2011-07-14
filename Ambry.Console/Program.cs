@@ -2,7 +2,7 @@
 using System.Data;
 using System.Data.Common;
 
-namespace DarkDocumentStore.Console
+namespace Ambry.Console
 {
 	class Program
 	{

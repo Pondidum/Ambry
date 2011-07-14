@@ -1,4 +1,4 @@
-namespace DarkDocumentStore
+namespace Ambry
 {
 	public interface ISqlProvider
 	{

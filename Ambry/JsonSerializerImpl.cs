@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Web.Script.Serialization;
-using DarkDocumentStore.Extensions;
+using Ambry.Extensions;
 
-namespace DarkDocumentStore
+namespace Ambry
 {
 	internal class JsonSerializerImpl
 	{

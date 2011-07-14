@@ -4,7 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Text;
 
-namespace DarkDocumentStore.Extensions
+namespace Ambry.Extensions
 {
 	static class DbProviderFactoryExtensions
 	{

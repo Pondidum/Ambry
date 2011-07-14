@@ -1,8 +1,8 @@
 ﻿using System.Text;
 using System.Data.Common;
-using DarkDocumentStore.Extensions;
+using Ambry.Extensions;
 
-namespace DarkDocumentStore
+namespace Ambry
 {
 	internal class SqlBuilder
 	{

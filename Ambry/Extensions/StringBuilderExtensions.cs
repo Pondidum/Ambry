@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace DarkDocumentStore.Extensions
+namespace Ambry.Extensions
 {
 	static class StringBuilderExtensions
 	{
