@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using Ambry.Extensions;
 
@@ -105,6 +106,15 @@ namespace Ambry
 			}
 		}
 
+		public IList<TRecord> GetByProperty<TRecord>(Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
+		{
+			using (var connection = OpenConnection())
+			{
+				return GetByProperty(connection, property, value);
+			}
+		}
+
+
 
 		private int? CreateRecord(DbConnection connection, Record record, DateTime date)
 		{
@@ -148,7 +158,7 @@ namespace Ambry
 				command.ExecuteScalar();
 			}
 		}
-		
+
 		private void DeleteRecord(DbConnection connection, Record record)
 		{
 			var sb = new StringBuilder();
@@ -164,7 +174,7 @@ namespace Ambry
 				record.ID = null;
 			}
 		}
-		
+
 		private TRecord ReadRecord<TRecord>(IDataReader reader) where TRecord : Record
 		{
 			var id = reader.GetInt32(0);
@@ -198,9 +208,39 @@ namespace Ambry
 				}
 			}
 		}
-		
-		
-		
+
+		private IList<TRecord> GetByProperty<TRecord>(DbConnection connection, Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
+		{
+			var indexes = GetIndexesFor<TRecord>(connection);
+			var propertyName = Utilities.PropertyName(property);
+
+			var index = indexes.FirstOrDefault(i => i == propertyName);
+
+			var sb = new StringBuilder();
+
+			sb.AppendLine("Select t.ID, t.Updated, t.Content");
+			sb.AppendLine("From {0} t", typeof(TRecord).Name);
+			sb.AppendLine("Join {0} i on t.ID = i.EntryID ", index);
+			sb.AppendLine("Where Value = @value");
+
+			using (var command = CreateCommand(connection, sb.ToString()))
+			{
+				command.Parameters.Add(_factory.CreateParameter("value", value));
+
+				using (var reader = command.ExecuteReader())
+				{
+					var results = new List<TRecord>();
+
+					while (reader.Read())
+					{
+						results.Add( ReadRecord<TRecord>(reader));
+					}
+				}
+			}
+		}
+
+
+
 		private void CreateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
 		{
 			var sb = new StringBuilder();

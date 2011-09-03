@@ -37,7 +37,7 @@ namespace Ambry
 		public void CreateIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
-			var propertyName = PropertyName(property);
+			var propertyName = Utilities.PropertyName(property);
 			var sb = new StringBuilder();
 
 			sb.AppendLine("Create Table {0} (", GetIndexTableName(type.Name, propertyName));
@@ -75,7 +75,7 @@ namespace Ambry
 		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
-			var propertyName = PropertyName(property);
+			var propertyName = Utilities.PropertyName(property);
 			var indexName = GetIndexTableName(type.Name, propertyName);
 
 			using (var connection = _store.OpenConnection())
@@ -105,30 +105,11 @@ namespace Ambry
 			_store.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 
-
-
 		private static String GetIndexTableName(String table, String property)
 		{
 			return String.Format("Index_{0}_{1}", table, property);
 		}
 
-		private static string PropertyName<T>(Expression<Func<T, Object>> property)
-		{
-			var lambda = (LambdaExpression)property;
-
-			MemberExpression memberExpression;
-
-			if (lambda.Body is UnaryExpression)
-			{
-				var unaryExpression = (UnaryExpression)lambda.Body;
-				memberExpression = (MemberExpression)unaryExpression.Operand;
-			}
-			else
-			{
-				memberExpression = (MemberExpression)lambda.Body;
-			}
-
-			return memberExpression.Member.Name;
-		}
+		
 	}
 }
