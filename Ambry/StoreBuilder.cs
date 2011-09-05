@@ -10,11 +10,11 @@ namespace Ambry
 {
 	public class StoreBuilder
 	{
-		private readonly Store _store;
+		private readonly DB _db ;
 
-		public StoreBuilder(Store store)
+		public StoreBuilder(DB db)
 		{
-			_store = store.IfNotNull("store");
+			_db = db.IfNotNull("db");
 		}
 
 		public void CreateTable<TRecord>() where TRecord : Record
@@ -27,9 +27,9 @@ namespace Ambry
 			sb.AppendLine("  Content  Varchar(65535) not null ");
 			sb.AppendLine(") Engine=InnoDB");
 
-			using (var connection = _store.OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
-				_store.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
+				_db.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
 			}
 
 		}
@@ -48,9 +48,9 @@ namespace Ambry
 			sb.AppendLine("  Foreign Key (EntryID)  References {0} (ID) on delete cascade", type.Name);
 			sb.AppendLine(") Engine=InnoDB");
 
-			using (var connection = _store.OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
-				_store.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
+				_db.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
 			}
 		}
 
@@ -58,10 +58,10 @@ namespace Ambry
 		{
 			var type = typeof(TRecord);
 
-			using (var connection = _store.OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
-
-				var indexes = _store.GetIndexesFor<TRecord>(connection);
+				var indexManager = new IndexManager(_db);
+				var indexes = indexManager.GetIndexesFor<TRecord>(connection);
 
 				foreach (var index in indexes)
 				{
@@ -78,7 +78,7 @@ namespace Ambry
 			var propertyName = Utilities.PropertyName(property);
 			var indexName = GetIndexTableName(type.Name, propertyName);
 
-			using (var connection = _store.OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
 				DeleteIndex(connection, indexName);
 			}
@@ -93,7 +93,7 @@ namespace Ambry
 
 			var sql = String.Format("Drop Table {0}", tableName);
 
-			_store.CreateCommand(connection, sql).ExecuteNonQuery();
+			_db.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 
 		private void DeleteIndex(DbConnection connection, String indexName)
@@ -102,7 +102,7 @@ namespace Ambry
 
 			var sql = String.Format("Drop Table {0}", indexName);
 
-			_store.CreateCommand(connection, sql).ExecuteNonQuery();
+			_db.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 
 		private static String GetIndexTableName(String table, String property)

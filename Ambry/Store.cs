@@ -1,24 +1,34 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 using Ambry.Extensions;
 
 namespace Ambry
 {
 	public class Store
 	{
+		private readonly DB _db;
+		private readonly IndexManager _indexes;
+		private readonly ContentManager _contents;
 
-		private readonly DbProviderFactory _factory;
-		private readonly string _connectionString;
-
-		public Store(DbProviderFactory factory, string connectionString)
+		public Store(DB db)
 		{
-			_factory = factory.IfNotNull("factory");
-			_connectionString = connectionString;
+			_db = db;
+			_indexes = new IndexManager(db);
+			_contents = new ContentManager(db);
+		}
+
+
+		public void Save<TRecord>(TRecord record) where TRecord : Record
+		{
+			if (record.ID.HasValue)
+			{
+				Update(record);
+			}
+			else
+			{
+				Insert(record);
+			}
 		}
 
 		public void Insert<TRecord>(TRecord record) where TRecord : Record
@@ -27,27 +37,12 @@ namespace Ambry
 
 			if (record.ID.HasValue) throw new InvalidOperationException("The record has an ID already, and cannot be inserted.  Did you mean to call Update()?");
 
-			using (var connection = OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
 				var date = DateTime.Now;
-				var id = CreateRecord(connection, record, date);
 
-				if (!id.HasValue)
-				{
-					return;  //uh oh.
-				}
-
-				var indexes = GetIndexesFor<TRecord>(connection);
-
-				if (!indexes.Any()) return;
-
-				foreach (var index in indexes)
-				{
-					var propertyName = GetIndexPropertyName(index);
-					var value = record.GetPropertyValue(propertyName);
-
-					CreateIndexEntry(connection, record, index, date, value);
-				}
+				_contents.CreateRecord(connection, record, date);
+				_indexes.Insert(connection, record, date);
 			}
 		}
 
@@ -57,23 +52,12 @@ namespace Ambry
 
 			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be updated.  Did you mean to call Insert()?");
 
-			using (var connection = OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
 				var date = DateTime.Now;
 
-				UpdateRecord(connection, record, date);
-
-				var indexes = GetIndexesFor<TRecord>(connection);
-
-				if (!indexes.Any()) return;
-
-				foreach (var index in indexes)
-				{
-					var propertyName = GetIndexPropertyName(index);
-					var value = record.GetPropertyValue(propertyName);
-
-					UpdateIndexEntry(connection, record, index, date, value);
-				}
+				_contents.UpdateRecord(connection, record, date);
+				_indexes.Update(connection, record, date);
 			}
 		}
 
@@ -83,16 +67,10 @@ namespace Ambry
 
 			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be deleted.");
 
-			using (var connection = OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
-				var indexes = GetIndexesFor<TRecord>(connection);
-
-				foreach (var index in indexes)
-				{
-					DeleteIndexEntry(connection, index, record);
-				}
-
-				DeleteRecord(connection, record);
+				_indexes.Delete(connection, record);
+				_contents.DeleteRecord(connection, record);
 			}
 		}
 
@@ -100,252 +78,19 @@ namespace Ambry
 		{
 			Check.ID(id, "ID");
 
-			using (var connection = OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
-				return GetByID<TRecord>(connection, id);
+				return _contents.GetRecordByID<TRecord>(connection, id);
 			}
 		}
 
 		public IList<TRecord> GetByProperty<TRecord>(Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
 		{
-			using (var connection = OpenConnection())
+			using (var connection = _db.OpenConnection())
 			{
-				return GetByProperty(connection, property, value);
+				return _indexes.GetByProperty(connection, property, value);
 			}
 		}
-
-
-
-		private int? CreateRecord(DbConnection connection, Record record, DateTime date)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Insert Into {0} (Updated, Content) ", record.GetType().Name);
-			sb.AppendLine("Values (@date , @content);");
-
-			sb.AppendLine("Select LAST_INSERT_ID()");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("content", JsonSerializer.Serialize(record)));
-
-				record.ID = command.ExecuteScalar().ToInt();
-				record.Updated = date;
-
-				return record.ID;
-			}
-
-		}
-
-		private void UpdateRecord(DbConnection connection, Record record, DateTime date)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Update {0} Set ", record.GetType().Name);
-			sb.AppendLine("Updated = @date, ");
-			sb.AppendLine("Content = @content ");
-			sb.AppendLine("Where ID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				record.Updated = date;
-
-				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("content", JsonSerializer.Serialize(record)));
-				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
-
-				command.ExecuteScalar();
-			}
-		}
-
-		private void DeleteRecord(DbConnection connection, Record record)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Delete From {0} ", record.GetType().Name);
-			sb.AppendLine("Where ID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
-
-				command.ExecuteScalar();
-				record.ID = null;
-			}
-		}
-
-		private TRecord ReadRecord<TRecord>(IDataReader reader) where TRecord : Record
-		{
-			var id = reader.GetInt32(0);
-			var updated = reader.GetDateTime(1);
-			var json = reader.GetString(2);
-
-			var result = JsonSerializer.Deserialize<TRecord>(json);
-			result.ID = id;
-			result.Updated = updated;
-
-			return result;
-		}
-
-		private TRecord GetByID<TRecord>(DbConnection connection, int id) where TRecord : Record
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Select ID, Updated, Content");
-			sb.AppendLine("From {0} ", typeof(TRecord).Name);
-			sb.AppendLine("Where ID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("id", id));
-
-				using (var reader = command.ExecuteReader())
-				{
-					reader.Read();
-
-					return ReadRecord<TRecord>(reader);
-				}
-			}
-		}
-
-		private IList<TRecord> GetByProperty<TRecord>(DbConnection connection, Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
-		{
-			var indexes = GetIndexesFor<TRecord>(connection);
-			var propertyName = Utilities.PropertyName(property);
-
-			var index = indexes.FirstOrDefault(i => i == propertyName);
-
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Select t.ID, t.Updated, t.Content");
-			sb.AppendLine("From {0} t", typeof(TRecord).Name);
-			sb.AppendLine("Join {0} i on t.ID = i.EntryID ", index);
-			sb.AppendLine("Where Value = @value");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("value", value));
-
-				using (var reader = command.ExecuteReader())
-				{
-					var results = new List<TRecord>();
-
-					while (reader.Read())
-					{
-						results.Add( ReadRecord<TRecord>(reader));
-					}
-				}
-			}
-		}
-
-
-
-		private void CreateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Insert Into {0} (EntryID, EntryUpdated, Value) ", indexName);
-			sb.AppendLine("Values (@entryID, @date, @value)");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("entryID", record.ID));
-				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("value", value));
-
-				command.ExecuteScalar();
-			}
-		}
-
-		private void UpdateIndexEntry(DbConnection connection, Record record, String indexName, DateTime date, Object value)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Update {0} Set ", indexName);
-			sb.AppendLine("EntryUpdated = @date, ");
-			sb.AppendLine("Value = @value ");
-			sb.AppendLine("Where EntryID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("date", date));
-				command.Parameters.Add(_factory.CreateParameter("value", value));
-				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
-
-				command.ExecuteScalar();
-			}
-		}
-
-		private void DeleteIndexEntry(DbConnection connection, String indexName, Record record)
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendLine("Delete From {0} ", indexName);
-			sb.AppendLine("Where EntryID = @id");
-
-			using (var command = CreateCommand(connection, sb.ToString()))
-			{
-				command.Parameters.Add(_factory.CreateParameter("id", record.ID));
-
-				command.ExecuteScalar();
-			}
-		}
-
-
-
-		internal IEnumerable<String> GetIndexesFor<TRecord>(DbConnection connection) where TRecord : Record
-		{
-			var type = typeof(TRecord);
-			var name = String.Format("Index_{0}_", type.Name);
-
-			return GetAllTables(connection).Where(t => t.StartsWith(name));
-		}
-
-		private IEnumerable<String> GetAllTables(DbConnection connection)
-		{
-			var tables = new List<String>();
-
-			var command = CreateCommand(connection, "Show Tables");
-
-			using (var reader = command.ExecuteReader())
-			{
-				while (reader.Read())
-				{
-					tables.Add(reader.GetString(0));
-				}
-			}
-
-			return tables;
-		}
-
-
-
-		internal DbConnection OpenConnection()
-		{
-			var connection = _factory.CreateConnection();
-
-			connection.ConnectionString = _connectionString;
-			connection.Open();
-
-			return connection;
-		}
-
-		internal DbCommand CreateCommand(DbConnection connection, String sql)
-		{
-			var command = _factory.CreateCommand();
-
-			command.Connection = connection;
-			command.CommandType = CommandType.Text;
-			command.CommandText = sql;
-
-			return command;
-		}
-
-		private static String GetIndexPropertyName(string indexName)
-		{
-			return indexName.Substring(indexName.LastIndexOf("_") + 1);
-		}
-
+		
 	}
 }

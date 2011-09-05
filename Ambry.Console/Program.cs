@@ -20,8 +20,8 @@ namespace Ambry.Console
 			try
 			{
 				var factory = DbProviderFactories.GetFactory("MySql.Data.MySqlClient");
-				
-				var store = new Store(factory, ConnectionString);
+				var db = new Ambry.DB(factory, ConnectionString);
+				var store = new Store(db);
 				//var builder = new StoreBuilder(store);
 
 				//builder.CreateTable<TestRecord>();

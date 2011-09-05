@@ -45,11 +45,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ContentManager.cs" />
+    <Compile Include="DB.cs" />
     <Compile Include="Extensions\Check.cs" />
     <Compile Include="Extensions\DbProviderFactoryExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Extensions\StringBuilderExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="IndexManager.cs" />
     <Compile Include="JsonSerializer.cs" />
     <Compile Include="JsonSerializerImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
