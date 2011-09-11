@@ -58,6 +58,7 @@
     <Compile Include="JsonSerializerImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Record.cs" />
+    <Compile Include="SqlProviders\MySqlProvider.cs" />
     <Compile Include="Store.cs" />
     <Compile Include="StoreBuilder.cs" />
     <Compile Include="Utilities.cs" />

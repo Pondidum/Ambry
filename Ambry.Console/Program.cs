@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.Common;
+using Ambry.SqlProviders;
 
 namespace Ambry.Console
 {
@@ -12,6 +13,13 @@ namespace Ambry.Console
 			public string Name { get; set; }
 		}
 
+		private class TypesRecord : Record
+		{
+			public String Name { get; set; }
+			public DateTime DateOfBirth { get; set; }
+			public int Age { get; set; }
+		}
+
 		private const string ConnectionString = "Server=192.168.0.145;Database=DarkDataStore;Uid=datastore;Pwd=testing;";
 
 		static void Main(string[] args)
@@ -20,21 +28,24 @@ namespace Ambry.Console
 			try
 			{
 				var factory = DbProviderFactories.GetFactory("MySql.Data.MySqlClient");
-				var db = new Ambry.DB(factory, ConnectionString);
+				var db = new DB(factory, ConnectionString);
+
 				var store = new Store(db);
-				//var builder = new StoreBuilder(store);
+				var builder = new StoreBuilder(db, new MySqlProvider());
 
-				//builder.CreateTable<TestRecord>();
-				//builder.CreateIndex<TestRecord>(r => r.Name);
+				//builder.CreateTable<TypesRecord>();
+				//builder.CreateIndex<TypesRecord>(x => x.Name);
+				//builder.CreateIndex<TypesRecord>(x => x.Age);
+				//builder.CreateIndex<TypesRecord>(x => x.DateOfBirth);
 
-				//var obj = new TestRecord();
-				//obj.Name = "Dave";
+				var test = new TypesRecord
+							{
+								Age = 1337,
+								DateOfBirth = new DateTime(2011, 10, 09, 08, 07, 6),
+								Name = "Testing"
+							};
 
-				//store.Save(obj);
-
-				var byID = store.GetByID<TestRecord>(1 );
-				var byName = store.GetByProperty<TestRecord>(x => x.Name, "Dave");
-
+				store.Save(test);
 			}
 			catch (Exception ex)
 			{

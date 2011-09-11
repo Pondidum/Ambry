@@ -9,10 +9,12 @@ namespace Ambry
 	public class StoreBuilder
 	{
 		private readonly DB _db ;
+		private readonly SqlProviders.MySqlProvider _sqlProvider;
 
-		public StoreBuilder(DB db)
+		public StoreBuilder(DB db, SqlProviders.MySqlProvider sqlProvider)
 		{
 			_db = db.IfNotNull("db");
+			_sqlProvider = sqlProvider.IfNotNull("sqlProvider");
 		}
 
 		public void CreateTable<TRecord>() where TRecord : Record
@@ -35,14 +37,16 @@ namespace Ambry
 		public void CreateIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
-			var propertyName = Utilities.PropertyName(property);
+			var propertyName = Utilities.GetPropertyName(property);
+			var propertyType = Utilities.GetPropertyType(property);
+
 			var sb = new StringBuilder();
 
 			sb.AppendLine("Create Table {0} (", IndexManager.GetIndexTableName(type.Name, propertyName));
 			sb.AppendLine("  ID            int      not null auto_increment primary key, ");
 			sb.AppendLine("  EntryID       int      not null, ");
 			sb.AppendLine("  EntryUpdated  DateTime not null, ");
-			sb.AppendLine("  Value Varchar(65535)   not null, ");		//make to use property data types
+			sb.AppendLine("  Value {0}              not null, ", _sqlProvider.GetSqlTypeFor(propertyType));		//make to use property data types   //Varchar(65535)
 			sb.AppendLine("  Foreign Key (EntryID)  References {0} (ID) on delete cascade", type.Name);
 			sb.AppendLine(") Engine=InnoDB");
 
@@ -73,7 +77,7 @@ namespace Ambry
 		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
-			var propertyName = Utilities.PropertyName(property);
+			var propertyName = Utilities.GetPropertyName(property);
 			var indexName = IndexManager.GetIndexTableName(type.Name, propertyName);
 
 			using (var connection = _db.OpenConnection())

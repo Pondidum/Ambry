@@ -5,7 +5,22 @@ namespace Ambry
 {
 	public class Utilities
 	{
-		public static string PropertyName<T>(Expression<Func<T, Object>> property)
+		public static string GetPropertyName<T>(Expression<Func<T, Object>> property)
+		{
+			var memberExpression = GetMemberExpression(property);
+
+			return memberExpression.Member.Name;
+		}
+
+		public static Type GetPropertyType<T>(Expression<Func<T, Object>> property)
+		{
+
+			var memberExpression = GetMemberExpression(property);
+
+			return memberExpression.Type;
+		}
+
+		private static MemberExpression GetMemberExpression<T>(Expression<Func<T, object>> property)
 		{
 			var lambda = (LambdaExpression)property;
 
@@ -20,8 +35,7 @@ namespace Ambry
 			{
 				memberExpression = (MemberExpression)lambda.Body;
 			}
-
-			return memberExpression.Member.Name;
+			return memberExpression;
 		}
 	}
 }

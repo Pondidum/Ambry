@@ -11,9 +11,8 @@ namespace Ambry.Extensions
 			return Convert.ToInt32(self);
 		}
 
-		//return type eventually needs to be the actual type.
-		//also some kind of caching to avoid repeated reflection might be needed. Dictionary<Type, Dictionary<PropertyName, func()>> should do it.
-		internal static String GetPropertyValue(this Object self, String propertyName)
+		//Some kind of caching to avoid repeated reflection might be needed. Dictionary<Type, Dictionary<PropertyName, func()>> should do it.
+		internal static Object GetPropertyValue(this Object self, String propertyName)
 		{
 			Check.Argument(self, "self");
 			Check.Argument(propertyName, "propertyName");
@@ -25,10 +24,10 @@ namespace Ambry.Extensions
 
 			if (specified != null)
 			{
-				return Convert.ToString(specified.GetValue(self, null));
+				return specified.GetValue(self, null);
 			}
 
-			return String.Empty;
+			return null;
 		}
 	}
 }

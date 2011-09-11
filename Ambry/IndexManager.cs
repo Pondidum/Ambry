@@ -123,7 +123,7 @@ namespace Ambry
 		{
 
 			var type = typeof(TRecord);
-			var indexName = GetIndexTableName(type.Name, Utilities.PropertyName(property));
+			var indexName = GetIndexTableName(type.Name, Utilities.GetPropertyName(property));
 
 			var indexes = GetIndexesFor<TRecord>(connection);
 
