@@ -27,7 +27,14 @@ namespace Ambry.Console
 				//builder.CreateTable<TestRecord>();
 				//builder.CreateIndex<TestRecord>(r => r.Name);
 
-				
+				//var obj = new TestRecord();
+				//obj.Name = "Dave";
+
+				//store.Save(obj);
+
+				var byID = store.GetByID<TestRecord>(1 );
+				var byName = store.GetByProperty<TestRecord>(x => x.Name, "Dave");
+
 			}
 			catch (Exception ex)
 			{

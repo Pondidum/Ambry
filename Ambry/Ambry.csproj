@@ -53,6 +53,7 @@
     <Compile Include="Extensions\StringBuilderExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="IndexManager.cs" />
+    <Compile Include="IndexNotFoundException.cs" />
     <Compile Include="JsonSerializer.cs" />
     <Compile Include="JsonSerializerImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

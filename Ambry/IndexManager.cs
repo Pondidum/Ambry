@@ -121,16 +121,22 @@ namespace Ambry
 
 		public IList<TRecord> GetByProperty<TRecord>(DbConnection connection, Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
 		{
-			var indexes = GetIndexesFor<TRecord>(connection);
-			var propertyName = Utilities.PropertyName(property);
 
-			var index = indexes.FirstOrDefault(i => i == propertyName);
+			var type = typeof(TRecord);
+			var indexName = GetIndexTableName(type.Name, Utilities.PropertyName(property));
+
+			var indexes = GetIndexesFor<TRecord>(connection);
+
+			if (!indexes.Contains(indexName))
+			{
+				throw new IndexNotFoundException(indexName);
+			}
 
 			var sb = new StringBuilder();
 
 			sb.AppendLine("Select t.ID, t.Updated, t.Content");
-			sb.AppendLine("From {0} t", typeof(TRecord).Name);
-			sb.AppendLine("Join {0} i on t.ID = i.EntryID ", index);
+			sb.AppendLine("From {0} t", type.Name);
+			sb.AppendLine("Join {0} i on t.ID = i.EntryID ", indexName);
 			sb.AppendLine("Where Value = @value");
 
 			using (var command = _db.CreateCommand(connection, sb.ToString()))
@@ -156,7 +162,7 @@ namespace Ambry
 		internal IEnumerable<String> GetIndexesFor<TRecord>(DbConnection connection) where TRecord : Record
 		{
 			var type = typeof(TRecord);
-			var name = String.Format("Index_{0}_", type.Name);
+			var name = GetIndexTableName(type.Name, String.Empty);
 
 			return GetAllTables(connection).Where(t => t.StartsWith(name));
 		}
@@ -178,10 +184,16 @@ namespace Ambry
 			return tables;
 		}
 
-		private static String GetIndexPropertyName(string indexName)
+		internal static String GetIndexPropertyName(string indexName)
 		{
 			return indexName.Substring(indexName.LastIndexOf("_") + 1);
 		}
 
+		internal static String GetIndexTableName(String objectName, String propertyName)
+		{
+			return String.Format("Index_{0}_{1}", objectName, propertyName);
+		}
+
 	}
+
 }

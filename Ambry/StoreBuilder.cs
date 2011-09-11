@@ -38,7 +38,7 @@ namespace Ambry
 			var propertyName = Utilities.PropertyName(property);
 			var sb = new StringBuilder();
 
-			sb.AppendLine("Create Table {0} (", GetIndexTableName(type.Name, propertyName));
+			sb.AppendLine("Create Table {0} (", IndexManager.GetIndexTableName(type.Name, propertyName));
 			sb.AppendLine("  ID            int      not null auto_increment primary key, ");
 			sb.AppendLine("  EntryID       int      not null, ");
 			sb.AppendLine("  EntryUpdated  DateTime not null, ");
@@ -74,7 +74,7 @@ namespace Ambry
 		{
 			var type = typeof(TRecord);
 			var propertyName = Utilities.PropertyName(property);
-			var indexName = GetIndexTableName(type.Name, propertyName);
+			var indexName = IndexManager.GetIndexTableName(type.Name, propertyName);
 
 			using (var connection = _db.OpenConnection())
 			{
@@ -103,10 +103,10 @@ namespace Ambry
 			_db.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 
-		private static String GetIndexTableName(String table, String property)
-		{
-			return String.Format("Index_{0}_{1}", table, property);
-		}
+		//private static String GetIndexTableName(String table, String property)
+		//{
+		//    return String.Format("Index_{0}_{1}", table, property);
+		//}
 
 		
 	}
