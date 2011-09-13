@@ -5,6 +5,7 @@ namespace Ambry
 {
 	public class Utilities
 	{
+
 		public static string GetPropertyName<T>(Expression<Func<T, Object>> property)
 		{
 			var memberExpression = GetMemberExpression(property);

@@ -5,11 +5,11 @@ using Ambry.Extensions;
 
 namespace Ambry
 {
-	public class ContentManager
+	internal class ContentManager
 	{
-		private readonly DB _db;
+		private readonly DatabaseConnector _db;
 
-		public ContentManager(DB db)
+		public ContentManager(DatabaseConnector db)
 		{
 			_db = db;
 		}

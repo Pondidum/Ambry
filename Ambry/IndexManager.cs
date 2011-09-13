@@ -8,11 +8,11 @@ using Ambry.Extensions;
 
 namespace Ambry
 {
-	public class IndexManager
+	internal class IndexManager
 	{
-		private readonly DB _db;
+		private readonly DatabaseConnector _db;
 
-		public IndexManager(DB db)
+		public IndexManager(DatabaseConnector db)
 		{
 			_db = db;
 		}

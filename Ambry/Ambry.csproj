@@ -46,7 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ContentManager.cs" />
-    <Compile Include="DB.cs" />
+    <Compile Include="DatabaseConnector.cs" />
     <Compile Include="Extensions\Check.cs" />
     <Compile Include="Extensions\DbProviderFactoryExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />

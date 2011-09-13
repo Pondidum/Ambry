@@ -5,12 +5,12 @@ using Ambry.Extensions;
 
 namespace Ambry
 {
-	public class DB
+	internal class DatabaseConnector
 	{
 		private readonly DbProviderFactory _factory;
 		private readonly string _connectionString;
 
-		public DB(DbProviderFactory factory, string connectionString)
+		public DatabaseConnector(DbProviderFactory factory, string connectionString)
 		{
 			_factory = factory.IfNotNull("factory");
 			_connectionString = connectionString;

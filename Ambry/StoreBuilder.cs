@@ -8,13 +8,17 @@ namespace Ambry
 {
 	public class StoreBuilder
 	{
-		private readonly DB _db ;
+		private readonly DatabaseConnector _connector ;
 		private readonly SqlProviders.MySqlProvider _sqlProvider;
 
-		public StoreBuilder(DB db, SqlProviders.MySqlProvider sqlProvider)
+		public StoreBuilder(DbProviderFactory factory, string connectionString, SqlProviders.MySqlProvider sqlProvider)
 		{
-			_db = db.IfNotNull("db");
-			_sqlProvider = sqlProvider.IfNotNull("sqlProvider");
+			Check.Argument(factory, "factory");
+			Check.Argument(connectionString, "connectionString");
+			Check.Argument(sqlProvider, "sqlProvider");
+
+			_connector = new DatabaseConnector(factory, connectionString);
+			_sqlProvider = sqlProvider;
 		}
 
 		public void CreateTable<TRecord>() where TRecord : Record
@@ -27,9 +31,9 @@ namespace Ambry
 			sb.AppendLine("  Content  Varchar(65535) not null ");
 			sb.AppendLine(") Engine=InnoDB");
 
-			using (var connection = _db.OpenConnection())
+			using (var connection = _connector.OpenConnection())
 			{
-				_db.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
+				_connector.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
 			}
 
 		}
@@ -50,9 +54,9 @@ namespace Ambry
 			sb.AppendLine("  Foreign Key (EntryID)  References {0} (ID) on delete cascade", type.Name);
 			sb.AppendLine(") Engine=InnoDB");
 
-			using (var connection = _db.OpenConnection())
+			using (var connection = _connector.OpenConnection())
 			{
-				_db.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
+				_connector.CreateCommand(connection, sb.ToString()).ExecuteNonQuery();
 			}
 		}
 
@@ -60,9 +64,9 @@ namespace Ambry
 		{
 			var type = typeof(TRecord);
 
-			using (var connection = _db.OpenConnection())
+			using (var connection = _connector.OpenConnection())
 			{
-				var indexManager = new IndexManager(_db);
+				var indexManager = new IndexManager(_connector);
 				var indexes = indexManager.GetIndexesFor<TRecord>(connection);
 
 				foreach (var index in indexes)
@@ -80,7 +84,7 @@ namespace Ambry
 			var propertyName = Utilities.GetPropertyName(property);
 			var indexName = IndexManager.GetIndexTableName(type.Name, propertyName);
 
-			using (var connection = _db.OpenConnection())
+			using (var connection = _connector.OpenConnection())
 			{
 				DeleteIndex(connection, indexName);
 			}
@@ -95,7 +99,7 @@ namespace Ambry
 
 			var sql = String.Format("Drop Table {0}", tableName);
 
-			_db.CreateCommand(connection, sql).ExecuteNonQuery();
+			_connector.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 
 		private void DeleteIndex(DbConnection connection, String indexName)
@@ -104,7 +108,7 @@ namespace Ambry
 
 			var sql = String.Format("Drop Table {0}", indexName);
 
-			_db.CreateCommand(connection, sql).ExecuteNonQuery();
+			_connector.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
 
 		//private static String GetIndexTableName(String table, String property)
