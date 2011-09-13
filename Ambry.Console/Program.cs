@@ -28,13 +28,12 @@ namespace Ambry.Console
 			try
 			{
 				var factory = DbProviderFactories.GetFactory("MySql.Data.MySqlClient");
-				var db = new DB(factory, ConnectionString);
 
-				var store = new Store(db);
-				var builder = new StoreBuilder(db, new MySqlProvider());
+				var store = new Store(factory, ConnectionString);
+				var builder = new StoreBuilder(factory, ConnectionString, new MySqlProvider());
 
 				//builder.CreateTable<TypesRecord>();
-				//builder.CreateIndex<TypesRecord>(x => x.Name);
+				builder.CreateIndex<TypesRecord>(x => x.Name);
 				//builder.CreateIndex<TypesRecord>(x => x.Age);
 				//builder.CreateIndex<TypesRecord>(x => x.DateOfBirth);
 
@@ -46,6 +45,7 @@ namespace Ambry.Console
 							};
 
 				store.Save(test);
+				store.GetByProperty<TypesRecord>(x => x.Age, 21);
 			}
 			catch (Exception ex)
 			{
