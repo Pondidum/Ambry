@@ -25,9 +25,8 @@ namespace Ambry
 		/// <summary>
 		/// Saves a record to the DocumentStore.
 		/// </summary>
-		/// <typeparam name="TRecord"></typeparam>
 		/// <param name="record"></param>
-		public void Save<TRecord>(TRecord record) where TRecord : Record
+		public void Save(Record record) 
 		{
 			if (record.ID.HasValue)
 			{
@@ -42,9 +41,8 @@ namespace Ambry
 		/// <summary>
 		/// Deletes a record from the store by it's ID.
 		/// </summary>
-		/// <typeparam name="TRecord"></typeparam>
 		/// <param name="record"></param>
-		public void Delete<TRecord>(TRecord record) where TRecord : Record
+		public void Delete(Record record) 
 		{
 			Check.Argument(record, "record");
 
@@ -74,7 +72,7 @@ namespace Ambry
 		}
 
 		/// <summary>
-		/// Gets a list of records from the store by property value.  The relevant indexes must exist.
+		/// Gets a list of records from the store bt
 		/// </summary>
 		/// <typeparam name="TRecord"></typeparam>
 		/// <param name="property"></param>
@@ -90,7 +88,7 @@ namespace Ambry
 		
 
 
-		private void Insert<TRecord>(TRecord record) where TRecord : Record
+		private void Insert(Record record) 
 		{
 			Check.Argument(record, "record");
 
@@ -105,7 +103,7 @@ namespace Ambry
 			}
 		}
 
-		private void Update<TRecord>(TRecord record) where TRecord : Record
+		private void Update(Record record)
 		{
 			Check.Argument(record, "record");
 

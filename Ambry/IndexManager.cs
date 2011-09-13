@@ -17,7 +17,7 @@ namespace Ambry
 			_db = db;
 		}
 
-		public void Insert<TRecord>(DbConnection connection, TRecord record, DateTime date) where TRecord : Record
+		public void Insert(DbConnection connection, Record record, DateTime date) 
 		{
 
 			if (!record.ID.HasValue)
@@ -25,7 +25,7 @@ namespace Ambry
 				return;  //uh oh.
 			}
 
-			var indexes = GetIndexesFor<TRecord>(connection);
+			var indexes = GetIndexesFor(connection, record.GetType());
 			if (!indexes.Any()) return;
 
 			foreach (var index in indexes)
@@ -37,7 +37,7 @@ namespace Ambry
 			}
 		}
 
-		public void Update<TRecord>(DbConnection connection, TRecord record, DateTime date) where TRecord : Record
+		public void Update(DbConnection connection, Record record, DateTime date) 
 		{
 
 			if (!record.ID.HasValue)
@@ -45,7 +45,7 @@ namespace Ambry
 				return;  //uh oh.
 			}
 
-			var indexes = GetIndexesFor<TRecord>(connection);
+			var indexes = GetIndexesFor(connection, record.GetType());
 			if (!indexes.Any()) return;
 
 			foreach (var index in indexes)
@@ -60,7 +60,7 @@ namespace Ambry
 
 		public void Delete<TRecord>(DbConnection connection, TRecord record) where TRecord : Record
 		{
-			var indexes = GetIndexesFor<TRecord>(connection);
+			var indexes = GetIndexesFor(connection, record.GetType());
 
 			foreach (var index in indexes)
 			{
@@ -125,7 +125,7 @@ namespace Ambry
 			var type = typeof(TRecord);
 			var indexName = GetIndexTableName(type.Name, Utilities.GetPropertyName(property));
 
-			var indexes = GetIndexesFor<TRecord>(connection);
+			var indexes = GetIndexesFor(connection, type);
 
 			if (!indexes.Contains(indexName))
 			{
@@ -159,9 +159,8 @@ namespace Ambry
 
 
 
-		internal IEnumerable<String> GetIndexesFor<TRecord>(DbConnection connection) where TRecord : Record
+		internal IEnumerable<String> GetIndexesFor(DbConnection connection, Type type) 
 		{
-			var type = typeof(TRecord);
 			var name = GetIndexTableName(type.Name, String.Empty);
 
 			return GetAllTables(connection).Where(t => t.StartsWith(name));

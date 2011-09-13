@@ -67,7 +67,7 @@ namespace Ambry
 			using (var connection = _connector.OpenConnection())
 			{
 				var indexManager = new IndexManager(_connector);
-				var indexes = indexManager.GetIndexesFor<TRecord>(connection);
+				var indexes = indexManager.GetIndexesFor(connection, type);
 
 				foreach (var index in indexes)
 				{
