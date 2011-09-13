@@ -2,7 +2,7 @@
 
 namespace Ambry.Extensions
 {
-	static class Check
+	internal static class Check
 	{
 
 		public static void Argument(Object self)

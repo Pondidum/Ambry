@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Ambry.Extensions
 {
-	static class StringBuilderExtensions
+	internal static class StringBuilderExtensions
 	{
 
 		public static void AppendLine(this StringBuilder self, String format, params Object[] args)

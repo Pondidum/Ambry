@@ -48,10 +48,8 @@
     <Compile Include="ContentManager.cs" />
     <Compile Include="DatabaseConnector.cs" />
     <Compile Include="Extensions\Check.cs" />
-    <Compile Include="Extensions\DbProviderFactoryExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Extensions\StringBuilderExtensions.cs" />
-    <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="IndexManager.cs" />
     <Compile Include="IndexNotFoundException.cs" />
     <Compile Include="JsonSerializer.cs" />

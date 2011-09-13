@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Ambry.Extensions
 {
-	static class ObjectExtensions
+	internal static class ObjectExtensions
 	{
 		internal static int ToInt(this Object self)
 		{
