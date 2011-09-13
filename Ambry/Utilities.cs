@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace Ambry
 {
-	public class Utilities
+	internal class Utilities
 	{
 
 		public static string GetPropertyName<T>(Expression<Func<T, Object>> property)

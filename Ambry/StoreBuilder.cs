@@ -110,12 +110,6 @@ namespace Ambry
 
 			_connector.CreateCommand(connection, sql).ExecuteNonQuery();
 		}
-
-		//private static String GetIndexTableName(String table, String property)
-		//{
-		//    return String.Format("Index_{0}_{1}", table, property);
-		//}
-
 		
 	}
 }

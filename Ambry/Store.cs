@@ -39,7 +39,58 @@ namespace Ambry
 			}
 		}
 
-		public void Insert<TRecord>(TRecord record) where TRecord : Record
+		/// <summary>
+		/// Deletes a record from the store by it's ID.
+		/// </summary>
+		/// <typeparam name="TRecord"></typeparam>
+		/// <param name="record"></param>
+		public void Delete<TRecord>(TRecord record) where TRecord : Record
+		{
+			Check.Argument(record, "record");
+
+			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be deleted.");
+
+			using (var connection = _connector.OpenConnection())
+			{
+				_indexes.Delete(connection, record);
+				_contents.DeleteRecord(connection, record);
+			}
+		}
+
+		/// <summary>
+		/// Gets a single record from the store by it's ID.
+		/// </summary>
+		/// <typeparam name="TRecord"></typeparam>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public TRecord GetByID<TRecord>(int id) where TRecord : Record
+		{
+			Check.ID(id, "ID");
+
+			using (var connection = _connector.OpenConnection())
+			{
+				return _contents.GetRecordByID<TRecord>(connection, id);
+			}
+		}
+
+		/// <summary>
+		/// Gets a list of records from the store by property value.  The relevant indexes must exist.
+		/// </summary>
+		/// <typeparam name="TRecord"></typeparam>
+		/// <param name="property"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public IList<TRecord> GetByProperty<TRecord>(Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
+		{
+			using (var connection = _connector.OpenConnection())
+			{
+				return _indexes.GetByProperty(connection, property, value);
+			}
+		}
+		
+
+
+		private void Insert<TRecord>(TRecord record) where TRecord : Record
 		{
 			Check.Argument(record, "record");
 
@@ -54,7 +105,7 @@ namespace Ambry
 			}
 		}
 
-		public void Update<TRecord>(TRecord record) where TRecord : Record
+		private void Update<TRecord>(TRecord record) where TRecord : Record
 		{
 			Check.Argument(record, "record");
 
@@ -69,36 +120,5 @@ namespace Ambry
 			}
 		}
 
-		public void Delete<TRecord>(TRecord record) where TRecord : Record
-		{
-			Check.Argument(record, "record");
-
-			if (!record.ID.HasValue) throw new InvalidOperationException("The record has no ID, and cannot be deleted.");
-
-			using (var connection = _connector.OpenConnection())
-			{
-				_indexes.Delete(connection, record);
-				_contents.DeleteRecord(connection, record);
-			}
-		}
-
-		public TRecord GetByID<TRecord>(int id) where TRecord : Record
-		{
-			Check.ID(id, "ID");
-
-			using (var connection = _connector.OpenConnection())
-			{
-				return _contents.GetRecordByID<TRecord>(connection, id);
-			}
-		}
-
-		public IList<TRecord> GetByProperty<TRecord>(Expression<Func<TRecord, Object>> property, Object value) where TRecord : Record
-		{
-			using (var connection = _connector.OpenConnection())
-			{
-				return _indexes.GetByProperty(connection, property, value);
-			}
-		}
-		
 	}
 }
