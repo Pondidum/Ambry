@@ -21,6 +21,9 @@ namespace Ambry
 			_sqlProvider = sqlProvider;
 		}
 
+		/// <summary>
+		/// Creates a new Content Table for the specified type param.
+		/// </summary>
 		public void CreateTable<TRecord>() where TRecord : Record
 		{
 			var sb = new StringBuilder();
@@ -38,6 +41,10 @@ namespace Ambry
 
 		}
 
+		/// <summary>
+		/// Creates an Index Table for the given type and property.
+		/// </summary>
+		/// <param name="property">The property for the index to map.</param>
 		public void CreateIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
@@ -60,6 +67,9 @@ namespace Ambry
 			}
 		}
 
+		/// <summary>
+		/// Deletes the Content Table for the specified type.
+		/// </summary>
 		public void DeleteTable<TRecord>() where TRecord : Record
 		{
 			var type = typeof(TRecord);
@@ -78,6 +88,10 @@ namespace Ambry
 			}
 		}
 
+		/// <summary>
+		/// Deletes an Index Table for the specified type and property.
+		/// </summary>
+		/// <param name="property">The mapped property to remove.</param>
 		public void DeleteIndex<TRecord>(Expression<Func<TRecord, Object>> property) where TRecord : Record
 		{
 			var type = typeof(TRecord);
